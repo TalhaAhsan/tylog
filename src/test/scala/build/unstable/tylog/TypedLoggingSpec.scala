@@ -15,19 +15,19 @@ class TypedLoggingSpec extends WordSpec with Matchers with TypedLogging {
         val log = new MockLogger(0)
 
         error(log, new Exception("BOOM"), "A: {}", "a")
-        assert(log.interceptedMessage == "A: a")
+        assert(log.interceptedMessage.get == "A: a")
 
         debug(log, "A: {}", "a")
-        assert(log.interceptedMessage == "A: a")
+        assert(log.interceptedMessage.get == "A: a")
 
         info(log, "A: {}", "a")
-        assert(log.interceptedMessage == "A: a")
+        assert(log.interceptedMessage.get == "A: a")
 
         warning(log, "A: {}", "a")
-        assert(log.interceptedMessage == "A: a")
+        assert(log.interceptedMessage.get == "A: a")
 
         trace(log, "", "", Variation.Attempt, "A: {}", "a")
-        assert(log.interceptedMessage == "A: a")
+        assert(log.interceptedMessage.get == "A: a")
 
       }
     }
@@ -79,10 +79,10 @@ class TypedLoggingSpec extends WordSpec with Matchers with TypedLogging {
         |trace(log, "A", "a", Variation.Attempt, "{}", "a")""".stripMargin should compile
     }
 
-    /* MDC static methods in the macro's reify method make this test hard
+    /* TODO inject MDC
     "log trace messages with set MDC context" in {
       val log = new MockLogger(0)
-      trace(log, "1", "a", Variation.Attempt, "")
+      trace(log, "1", "a", Variation.Attempt, "{}", "a")
       log.interceptedMdc should contain theSameElementsAs Map(
         Macros.callTypeKey → "a",
         Macros.traceIdKey → "1",
@@ -90,10 +90,24 @@ class TypedLoggingSpec extends WordSpec with Matchers with TypedLogging {
       )
     }*/
 
+    "not allow non-literal strings if args are passed" in {
+      """
+        | val log = new MockLogger(0)
+        | val msg = "A"
+        |info(log, msg, "a")""".stripMargin shouldNot compile
+    }
+
+    "allow non-literal strings if no args are passed" in {
+       val log = new MockLogger(0)
+       val msg = "A"
+      info(log, msg)
+      assert(log.interceptedMessage.get == "A")
+    }
+
     "not not interpolate string if level is not enabled" in {
       val log = new MockLogger(100)
-      trace(log, "1", "a", Variation.Attempt, "{}", "a")
-      assert(log.interceptedMessage == "")
+      info(log, "{}", "a")
+      assert(log.interceptedMessage.isEmpty)
     }
   }
 }

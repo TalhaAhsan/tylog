@@ -14,7 +14,7 @@ object Fixture {
 
     def isDebugEnabled: Boolean = level < 1
 
-    def isTraceEnabled: Boolean = isInfoEnabled
+    def isTraceEnabled: Boolean = true
 
     def getMDC = {
       Map(
@@ -26,11 +26,11 @@ object Fixture {
 
     def intercept(msg: String) {
       interceptedMdc = getMDC
-      interceptedMessage = msg
+      interceptedMessage = Some(msg)
     }
 
     var interceptedMdc: Map[String, String] = Map.empty
-    var interceptedMessage: String = ""
+    var interceptedMessage: Option[String] = None
 
     override def trace(msg: String): Unit = intercept(msg)
 

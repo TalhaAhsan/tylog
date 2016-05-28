@@ -9,7 +9,7 @@ private[tylog] object Macros {
   private def assert_(c: whitebox.Context)(template: c.Expr[String], arg: c.Expr[Any]*): Int = {
     import c.universe._
 
-    /*
+    /* TODO traverse compilation unit's AST to provide non-literal compile-time checks
     case class FindLiteral(name: c.universe.Name, scopeTree: c.universe.Tree) extends Traverser {
       var template: Option[String] = None
       var traversed: String = ""
@@ -32,15 +32,15 @@ private[tylog] object Macros {
       }
     }*/
 
-    val s_template: String = template.tree match {
-      case Literal(Constant(s: String)) ⇒ s
-      case tree ⇒ c.abort(c.enclosingPosition, s"log template must be a string literal")
+    template.tree match {
+      case Literal(Constant(s: String)) ⇒
+        val na = arg.length
+        val np = "\\{\\}".r.findAllIn(s).length
+        assert(na == np, s"$na arguments passed but there are $np placeholders")
+        na
+      case tree if arg.isEmpty ⇒ 0
+      case tree ⇒ c.abort(c.enclosingPosition, "log template must be a string literal if arguments are to be injected")
     }
-
-    val na = arg.length
-    val np = "\\{\\}".r.findAllIn(s_template).length
-    assert(na == np, s"$na arguments passed but there are $np placeholders")
-    na
   }
 
   def replace(template: String, arg: Seq[Any], n: Int): String = {
@@ -64,8 +64,7 @@ private[tylog] object Macros {
     val argsExpr = c.Expr[Seq[Any]] { q"Seq(..$arg)" }
     val nExpr = c.Expr[Int](Literal(Constant(n)))
     reify {
-      val _log = log.splice
-      if (_log.isErrorEnabled) _log.error(replace(template.splice, argsExpr.splice, nExpr.splice), error.splice)
+      if (log.splice.isErrorEnabled) log.splice.error(replace(template.splice, argsExpr.splice, nExpr.splice), error.splice)
     }
   }
 
@@ -76,8 +75,7 @@ private[tylog] object Macros {
     val argsExpr = c.Expr[Seq[Any]] { q"Seq(..$arg)" }
     val nExpr = c.Expr[Int](Literal(Constant(n)))
     reify {
-      val _log = log.splice
-      if (_log.isWarnEnabled) _log.warn(replace(template.splice, argsExpr.splice, nExpr.splice))
+      if (log.splice.isWarnEnabled) log.splice.warn(replace(template.splice, argsExpr.splice, nExpr.splice))
     }
   }
 
@@ -88,8 +86,7 @@ private[tylog] object Macros {
     val argsExpr = c.Expr[Seq[Any]] { q"Seq(..$arg)" }
     val nExpr = c.Expr[Int](Literal(Constant(n)))
     reify {
-      val _log = log.splice
-      if (_log.isInfoEnabled) _log.info(replace(template.splice, argsExpr.splice, nExpr.splice))
+      if (log.splice.isInfoEnabled) log.splice.info(replace(template.splice, argsExpr.splice, nExpr.splice))
     }
   }
 
@@ -100,8 +97,7 @@ private[tylog] object Macros {
     val argsExpr = c.Expr[Seq[Any]] { q"Seq(..$arg)" }
     val nExpr = c.Expr[Int](Literal(Constant(n)))
     reify {
-      val _log = log.splice
-      if (_log.isDebugEnabled) _log.debug(replace(template.splice, argsExpr.splice, nExpr.splice))
+      if (log.splice.isDebugEnabled) log.splice.debug(replace(template.splice, argsExpr.splice, nExpr.splice))
     }
   }
 
@@ -109,21 +105,29 @@ private[tylog] object Macros {
   val variationKey: String = "variation"
   val traceIdKey: String = "trace_id"
 
-  def trace[TraceID, CallType, Variation](c: whitebox.Context)
-                                         (log: c.Expr[Logger], traceId: c.Expr[TraceID],
-                                          callType: c.Expr[CallType], variation: c.Expr[Variation],
-                                          template: c.Expr[String], arg: c.Expr[Any]*): c.Expr[Unit] = {
+  def trace[TraceID, CallType](c: whitebox.Context)
+                              (log: c.Expr[Logger], traceId: c.Expr[TraceID],
+                               callType: c.Expr[CallType], variation: c.Expr[Variation],
+                               template: c.Expr[String], arg: c.Expr[Any]*): c.Expr[Unit] = {
     import c.universe._
     val n = assert_(c)(template, arg: _*)
     val argsExpr = c.Expr[Seq[Any]] { q"Seq(..$arg)" }
     val nExpr = c.Expr[Int](Literal(Constant(n)))
+
     reify {
-      val _log = log.splice
-      if (_log.isTraceEnabled) {
+      if (log.splice.isTraceEnabled) {
         MDC.put(traceIdKey, traceId.splice.toString)
         MDC.put(callTypeKey, callType.splice.toString)
         MDC.put(variationKey, variation.splice.toString)
-        _log.trace(replace(template.splice, argsExpr.splice, nExpr.splice))
+
+        val message = replace(template.splice, argsExpr.splice, nExpr.splice)
+        log.splice.trace(message)
+
+        //if failure, log error level as well
+        if (variation.splice.isFailure) {
+          val e = variation.splice.asInstanceOf[Variation.Failure].e
+          log.splice.error(message, e)
+        }
         MDC.clear()
       }
     }
