@@ -18,9 +18,9 @@ object Fixture {
 
     def getMDC = {
       Map(
-        TypedLogging.callTypeKey → MDC.get(TypedLogging.callTypeKey),
-        TypedLogging.variationKey → MDC.get(TypedLogging.variationKey),
-        TypedLogging.traceIdKey → MDC.get(TypedLogging.traceIdKey)
+        Macros.callTypeKey → MDC.get(Macros.callTypeKey),
+        Macros.variationKey → MDC.get(Macros.variationKey),
+        Macros.traceIdKey → MDC.get(Macros.traceIdKey)
       )
     }
 

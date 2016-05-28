@@ -1,6 +1,6 @@
 package build.unstable.tylog
 
-import org.slf4j.{Logger, MDC}
+import org.slf4j.Logger
 
 import scala.language.experimental.macros
 
@@ -35,22 +35,7 @@ trait TypedLogging {
 
   protected def warning(log: Logger, template: String, arg: Any*): Unit = macro Macros.warning
 
-  protected def trace(log: Logger, traceId: TraceID, c: CallType, v: Variation, message: Option[String] = None): Unit = {
-    MDC.put(TypedLogging.traceIdKey, traceId.toString)
-    MDC.put(TypedLogging.callTypeKey, c.toString)
-    MDC.put(TypedLogging.variationKey, v.toString)
-    v match {
-      case Variation.Failure(e) ⇒
-        log.error(message.getOrElse(""), e)
-        log.trace(message.getOrElse(""))
-      case _ ⇒ log.trace(message.getOrElse(""))
-    }
-    MDC.clear()
-  }
-}
-
-private[tylog] object TypedLogging {
-  val callTypeKey: String = "call_type"
-  val variationKey: String = "variation"
-  val traceIdKey: String = "trace_id"
+  protected def trace(log: Logger, traceId: TraceID,
+                      callType: CallType, variation: Variation,
+                      template: String, arg: Any*): Unit = macro Macros.trace[TraceID, CallType, Variation]
 }

@@ -1,5 +1,0 @@
-<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-    <layout>
-        <Pattern>%X{trace_id} %X{call_type} %X{variation} - %m%n</Pattern>
-    </layout>
-</appender>

@@ -1,6 +1,6 @@
 package build.unstable.tylog
 
-import org.slf4j.Logger
+import org.slf4j.{Logger, MDC}
 
 import scala.reflect.macros.whitebox
 
@@ -102,6 +102,30 @@ private[tylog] object Macros {
     reify {
       val _log = log.splice
       if (_log.isDebugEnabled) _log.debug(replace(template.splice, argsExpr.splice, nExpr.splice))
+    }
+  }
+
+  val callTypeKey: String = "call_type"
+  val variationKey: String = "variation"
+  val traceIdKey: String = "trace_id"
+
+  def trace[TraceID, CallType, Variation](c: whitebox.Context)
+                                         (log: c.Expr[Logger], traceId: c.Expr[TraceID],
+                                          callType: c.Expr[CallType], variation: c.Expr[Variation],
+                                          template: c.Expr[String], arg: c.Expr[Any]*): c.Expr[Unit] = {
+    import c.universe._
+    val n = assert_(c)(template, arg: _*)
+    val argsExpr = c.Expr[Seq[Any]] { q"Seq(..$arg)" }
+    val nExpr = c.Expr[Int](Literal(Constant(n)))
+    reify {
+      val _log = log.splice
+      if (_log.isTraceEnabled) {
+        MDC.put(traceIdKey, traceId.splice.toString)
+        MDC.put(callTypeKey, callType.splice.toString)
+        MDC.put(variationKey, variation.splice.toString)
+        _log.trace(replace(template.splice, argsExpr.splice, nExpr.splice))
+        MDC.clear()
+      }
     }
   }
 }
