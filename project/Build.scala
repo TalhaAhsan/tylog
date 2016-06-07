@@ -6,11 +6,10 @@ object Build extends sbt.Build {
 
   val commonSettings = Seq(
     organization := "build.unstable",
-    version := "0.1.1",
+    version := "0.1.3",
     scalaVersion := "2.11.8",
     //run <<= run in Compile in core,
     licenses +=("MIT", url("https://opensource.org/licenses/MIT")),
-    publishMavenStyle := false,
     scalacOptions := Seq(
       "-unchecked",
       "-Xlog-free-terms",
