@@ -52,6 +52,17 @@ object Build extends sbt.Build {
         )
       })
 
+  lazy val bench = Project(id = "tylog-bench", base = file("bench"))
+    .settings(commonSettings: _*)
+    .settings(
+      libraryDependencies ++= {
+        Seq(
+          "org.scala-tools.testing" % "test-interface" % "0.5",
+          "build.unstable" %% "sonicd-core" % "0.4.2"
+        )
+      }
+    ).dependsOn(core % "compile->compile")
+
   lazy val examples = Project(id = "tylog-examples", base = file("examples"))
     .settings(commonSettings: _*)
     .settings(
