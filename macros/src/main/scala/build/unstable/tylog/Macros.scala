@@ -1,5 +1,6 @@
 package build.unstable.tylog
 
+import org.slf4j.event.Level
 import org.slf4j.{Logger, MDC}
 
 import scala.reflect.macros.whitebox
@@ -101,14 +102,22 @@ private[tylog] object Macros {
     }
   }
 
-  val callTypeKey: String = "call_type"
-  val variationKey: String = "variation"
-  val traceIdKey: String = "trace_id"
+  def trace(c: whitebox.Context)
+           (log: c.Expr[Logger], template: c.Expr[String], arg: c.Expr[Any]*): c.Expr[Unit] = {
+    import c.universe._
+    val n = assert_(c)(template, arg: _*)
+    val argsExpr = c.Expr[Seq[Any]] { q"Seq(..$arg)" }
+    val nExpr = c.Expr[Int](Literal(Constant(n)))
+    reify {
+      if (log.splice.isDebugEnabled) log.splice.trace(replace(template.splice, argsExpr.splice, nExpr.splice))
+    }
+  }
 
-  def trace[TraceID, CallType](c: whitebox.Context)
-                              (log: c.Expr[Logger], traceId: c.Expr[TraceID],
-                               callType: c.Expr[CallType], variation: c.Expr[Variation],
-                               template: c.Expr[String], arg: c.Expr[Any]*): c.Expr[Unit] = {
+  @deprecated("", "0.2.5")
+  def _trace[TraceID, CallType](c: whitebox.Context)
+                               (log: c.Expr[Logger], traceId: c.Expr[TraceID],
+                                callType: c.Expr[CallType], variation: c.Expr[Variation],
+                                template: c.Expr[String], arg: c.Expr[Any]*): c.Expr[Unit] = {
     import c.universe._
     val n = assert_(c)(template, arg: _*)
     val argsExpr = c.Expr[Seq[Any]] { q"Seq(..$arg)" }
@@ -129,6 +138,84 @@ private[tylog] object Macros {
           log.splice.error(message, e)
         }
         MDC.clear()
+      }
+    }
+  }
+
+  def logMethod(c: whitebox.Context)(logger: c.Expr[Logger], method: String): c.Expr[String ⇒ Unit] = {
+    import c.universe._
+    val term = TermName(method)
+    c.Expr[String ⇒ Unit](q"(s: String) => $logger.$term(s)")
+  }
+
+  def errorMethod(c: whitebox.Context)(logger: c.Expr[Logger], method: String): c.Expr[(String, Throwable) ⇒ Unit] = {
+    import c.universe._
+    val term = TermName(method)
+    c.Expr[(String, Throwable) ⇒ Unit](q"(s: String, e: Throwable) => $logger.$term(s, e)")
+  }
+
+  def selectIsEnabled(c: whitebox.Context)(logger: c.Expr[Logger], method: String): c.Expr[Boolean] = {
+    import c.universe._
+    c.Expr[Boolean](Select(logger.tree, TermName(method)))
+  }
+
+  def tylog[T, C](c: whitebox.Context)(logger: c.Expr[Logger], level: c.Expr[Level], traceId: c.Expr[T],
+                                       callType: c.Expr[C], variation: c.Expr[Variation],
+                                       template: c.Expr[String], arg: c.Expr[Any]*): c.Expr[Unit] = {
+    import c.universe._
+    val n = assert_(c)(template, arg: _*)
+    val argsExpr = c.Expr[Seq[Any]] {
+      q"Seq(..$arg)"
+    }
+    val nExpr = c.Expr[Int](Literal(Constant(n)))
+
+    val (logFn, errorFn, isEnabled) = level match {
+
+      case Expr(Literal(Constant(s: TermSymbol))) if s.fullName == "org.slf4j.event.Level.TRACE" ⇒
+        (logMethod(c)(logger, "trace"),
+          errorMethod(c)(logger, "warn"),
+          selectIsEnabled(c)(logger, "isTraceEnabled"))
+
+      case Expr(Literal(Constant(s: TermSymbol))) if s.fullName == "org.slf4j.event.Level.DEBUG" ⇒
+        (logMethod(c)(logger, "debug"),
+          errorMethod(c)(logger, "warn"),
+          selectIsEnabled(c)(logger, "isDebugEnabled"))
+
+      case Expr(Literal(Constant(s: TermSymbol))) if s.fullName == "org.slf4j.event.Level.INFO" ⇒
+        (logMethod(c)(logger, "info"),
+          errorMethod(c)(logger, "error"),
+          selectIsEnabled(c)(logger, "isInfoEnabled"))
+
+      case Expr(Literal(Constant(s: TermSymbol))) ⇒
+        c.abort(c.enclosingPosition, s"${s.fullName} is not allowed for tylog method")
+
+      case s ⇒ c.abort(c.enclosingPosition, s"unexpected expression $s")
+    }
+
+    reify {
+      if (isEnabled.splice) {
+        val $variation: Variation = variation.splice
+        val $callType = callType.splice
+        val $traceId = traceId.splice
+        val $message = replace(template.splice, argsExpr.splice, nExpr.splice)
+
+        MDC.put(traceIdKey, $traceId.toString)
+        MDC.put(callTypeKey, $callType.toString)
+        MDC.put(variationKey, $variation.toString)
+
+        $variation match {
+          case Variation.Attempt ⇒
+            logFn.splice($message)
+            MDC.remove(variationKey)
+
+          case Variation.Success ⇒
+            logFn.splice($message)
+            MDC.clear()
+
+          case f@Variation.Failure(e) ⇒
+            errorFn.splice($message, f.e)
+            MDC.clear()
+        }
       }
     }
   }
