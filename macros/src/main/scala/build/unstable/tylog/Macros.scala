@@ -134,6 +134,7 @@ private[tylog] object Macros {
     c.Expr[Boolean](Select(logger.tree, TermName(method)))
   }
 
+  @SuppressWarnings(Array("deprecation"))
   def getLogger(c: whitebox.Context): c.Expr[Logger] = {
     import c.universe._
     val name = Literal(Constant(c.enclosingClass.symbol.fullName))
@@ -167,33 +168,33 @@ private[tylog] object Macros {
           selectIsEnabled(c)(logger, "isInfoEnabled"))
 
       case Expr(Literal(Constant(s: TermSymbol))) ⇒
-        c.abort(c.enclosingPosition, s"${s.fullName} is not allowed for tylogger method")
+        c.abort(c.enclosingPosition, s"${s.fullName} is not allowed for tylog method")
 
       case s ⇒ c.abort(c.enclosingPosition, s"unexpected expression $s")
     }
 
     reify {
       if (isEnabled.splice) {
-        val $variation: Variation = variation.splice
-        val $callType = callType.splice
-        val $traceId = traceId.splice
-        val $message = replace(template.splice, argsExpr.splice, nExpr.splice)
+        val _variation: Variation = variation.splice
+        val _callType = callType.splice
+        val _traceId = traceId.splice
+        val _message = replace(template.splice, argsExpr.splice, nExpr.splice)
 
-        MDC.put(traceIdKey, $traceId.toString)
-        MDC.put(callTypeKey, $callType.toString)
-        MDC.put(variationKey, $variation.toString)
+        MDC.put(traceIdKey, _traceId.toString)
+        MDC.put(callTypeKey, _callType.toString)
+        MDC.put(variationKey, _variation.toString)
 
-        $variation match {
+        _variation match {
           case Variation.Attempt ⇒
-            logFn.splice($message)
+            logFn.splice(_message)
             MDC.remove(variationKey)
 
           case Variation.Success ⇒
-            logFn.splice($message)
+            logFn.splice(_message)
             MDC.clear()
 
           case f@Variation.Failure(e) ⇒
-            errorFn.splice($message, f.e)
+            errorFn.splice(_message, f.e)
             MDC.clear()
         }
       }

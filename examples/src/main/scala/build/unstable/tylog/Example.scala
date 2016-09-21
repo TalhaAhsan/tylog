@@ -19,8 +19,11 @@ object Example extends App with TypedLogging {
   // normal log statements between attempt and resolution will have MDC set
   log.debug("a message with context")
 
+  // won't compile, ERROR is not a valid Level for tylog method
+  // log.tylog(Level.ERROR, traceId, A, Variation.Success, "yay!")
+
   // logging Success/Failure will clear MDC
-  log.tylog(Level.TRACE, traceId, A, Variation.Success, "yay!")
+  log.tylog(Level.INFO, traceId, A, Variation.Success, "yay!")
 
   // placeholders and arguments are checked at compile time
   log.debug("this compiles normally {}", "msg")
