@@ -9,3 +9,5 @@ notifications:
   email:
     recipients:
       - ernest@unstable.build
+jdk:
+  - oraclejdk8
