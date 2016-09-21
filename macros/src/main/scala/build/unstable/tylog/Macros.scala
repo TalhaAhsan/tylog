@@ -117,13 +117,13 @@ private[tylog] object Macros {
     }
   }
 
-  def logMethod(c: whitebox.Context)(logger: c.Expr[Logger], method: String): c.Expr[String ⇒ Unit] = {
+  def selectLogMethod(c: whitebox.Context)(logger: c.Expr[Logger], method: String): c.Expr[String ⇒ Unit] = {
     import c.universe._
     val term = TermName(method)
     c.Expr[String ⇒ Unit](q"(s: String) => $logger.$term(s)")
   }
 
-  def errorMethod(c: whitebox.Context)(logger: c.Expr[Logger], method: String): c.Expr[(String, Throwable) ⇒ Unit] = {
+  def selectErrorMethod(c: whitebox.Context)(logger: c.Expr[Logger], method: String): c.Expr[(String, Throwable) ⇒ Unit] = {
     import c.universe._
     val term = TermName(method)
     c.Expr[(String, Throwable) ⇒ Unit](q"(s: String, e: Throwable) => $logger.$term(s, e)")
@@ -153,18 +153,18 @@ private[tylog] object Macros {
     val (logFn, errorFn, isEnabled) = level match {
 
       case Expr(Literal(Constant(s: TermSymbol))) if s.fullName == "org.slf4j.event.Level.TRACE" ⇒
-        (logMethod(c)(logger, "trace"),
-          errorMethod(c)(logger, "warn"),
+        (selectLogMethod(c)(logger, "trace"),
+          selectErrorMethod(c)(logger, "warn"),
           selectIsEnabled(c)(logger, "isTraceEnabled"))
 
       case Expr(Literal(Constant(s: TermSymbol))) if s.fullName == "org.slf4j.event.Level.DEBUG" ⇒
-        (logMethod(c)(logger, "debug"),
-          errorMethod(c)(logger, "warn"),
+        (selectLogMethod(c)(logger, "debug"),
+          selectErrorMethod(c)(logger, "warn"),
           selectIsEnabled(c)(logger, "isDebugEnabled"))
 
       case Expr(Literal(Constant(s: TermSymbol))) if s.fullName == "org.slf4j.event.Level.INFO" ⇒
-        (logMethod(c)(logger, "info"),
-          errorMethod(c)(logger, "error"),
+        (selectLogMethod(c)(logger, "info"),
+          selectErrorMethod(c)(logger, "error"),
           selectIsEnabled(c)(logger, "isInfoEnabled"))
 
       case Expr(Literal(Constant(s: TermSymbol))) ⇒

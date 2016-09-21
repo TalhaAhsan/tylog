@@ -1,8 +1,6 @@
 package build.unstable.tylog
 
-sealed trait Variation {
-  def isFailure: Boolean = this.getClass == classOf[Variation.Failure]
-}
+sealed trait Variation
 
 object Variation {
 

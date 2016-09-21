@@ -18,9 +18,9 @@ object Fixture {
 
     def getMDC = {
       Map(
-        Macros.callTypeKey → MDC.get(Macros.callTypeKey),
-        Macros.variationKey → MDC.get(Macros.variationKey),
-        Macros.traceIdKey → MDC.get(Macros.traceIdKey)
+        callTypeKey → MDC.get(callTypeKey),
+        variationKey → MDC.get(variationKey),
+        traceIdKey → MDC.get(traceIdKey)
       )
     }
 
