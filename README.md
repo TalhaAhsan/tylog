@@ -1,4 +1,4 @@
-# tylog 
+# Tylog [![Build Status](https://travis-ci.org/ernestrc/tylog.svg?branch=master)](https://travis-ci.org/ernestrc/tylog)
 
 # The problem
 Server-side inhomogeneous logging can be frustrating to parse and analyze.

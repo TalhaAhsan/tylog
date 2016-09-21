@@ -1,0 +1,11 @@
+sudo: required
+language: scala
+scala:
+  - 2.11.8
+branches:
+  only:
+    - master
+notifications:
+  email:
+    recipients:
+      - ernest@unstable.build
