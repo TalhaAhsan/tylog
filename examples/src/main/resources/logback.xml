@@ -1,39 +1,45 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration scan="true">
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <charset>UTF-8</charset>
-            <pattern>[%highlight(%level)][%d{ISO8601}][%.12thread][%logger{36}][%mdc{trace_id}][%mdc{call_type}][%mdc{variation}] - %msg%n</pattern>
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <pattern>
+                    <pattern>{"component":"tylog-example","timestamp":"%d","thread":"%thread","level":"%level","logger":"%logger{35}","message":"%msg"}</pattern>
+                </pattern>
+                <mdc/>
+            </providers>
         </encoder>
     </appender>
 
     <appender name="JSON" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>/var/log/tylog.log</file>
+        <file>/tmp/tylog.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- daily rollover. Make sure the path matches the one in the file element or else
              the rollover logs are placed in the working directory. -->
-            <fileNamePattern>/var/log/tylog%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <fileNamePattern>/tmp/tylog%d{yyyy-MM-dd}.%i.log</fileNamePattern>
             <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
                 <maxFileSize>5MB</maxFileSize>
             </timeBasedFileNamingAndTriggeringPolicy>
-            <!-- keep 30 days' worth of history -->
-            <maxHistory>30</maxHistory>
+            <!-- keep 3 days' worth of history -->
+            <maxHistory>3</maxHistory>
         </rollingPolicy>
-
-        <encoder>
-            <charset>UTF-8</charset>
-            <pattern>{"component":"tylog-example","trace_id":"%mdc{trace_id}","timestamp":"%d","thread":"%thread","level":"%level","logger":"%logger{35}","call_type":"%mdc{call_type}","variation":"%mdc{variation}","message":"%replace(%msg){'\"', '\\"'}","exception":"%replace(%rEx){'\n', '\\n'}"}%nopex%n</pattern>
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <pattern>
+                    <pattern>{"component":"tylog-example","timestamp":"%d","thread":"%thread","level":"%level","logger":"%logger{35}","message":"%msg"}</pattern>
+                </pattern>
+                <mdc/>
+            </providers>
         </encoder>
     </appender>
 
-    <appender name="ASYNC" class="ch.qos.logback.classic.AsyncAppender">
-        <queueSize>1000000</queueSize>
-        <discardingThreshold>0</discardingThreshold>
-        <appender-ref ref="JSON" />
+    <appender name="ASYNC" class="net.logstash.logback.appender.LoggingEventAsyncDisruptorAppender">
+        <waitStrategyType>yielding</waitStrategyType>
+        <appender-ref ref="JSON"/>
     </appender>
 
     <root level="TRACE">
         <appender-ref ref="STDOUT"/>
-        <appender-ref ref="ASYNC" />
+        <appender-ref ref="ASYNC"/>
     </root>
 </configuration>

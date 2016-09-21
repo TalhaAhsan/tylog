@@ -10,7 +10,7 @@ object Build extends sbt.Build {
     organization := "build.unstable",
     version := "0.3.0",
     scalaVersion := "2.11.8",
-    licenses +=("MIT", url("https://opensource.org/licenses/MIT")),
+    licenses += ("MIT", url("https://opensource.org/licenses/MIT")),
     scalacOptions := Seq(
       "-unchecked",
       "-Xlog-free-terms",
@@ -55,7 +55,10 @@ object Build extends sbt.Build {
   lazy val examples = Project(id = "tylog-examples", base = file("examples"))
     .settings(commonSettings: _*)
     .settings(
-      libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.7"
+      libraryDependencies ++= Seq(
+        "net.logstash.logback" % "logstash-logback-encoder" % "4.7",
+        "ch.qos.logback" % "logback-classic" % "1.1.7"
+      )
     ).dependsOn(tylog)
 
   override def rootProject: Option[Project] = Some(tylog)
