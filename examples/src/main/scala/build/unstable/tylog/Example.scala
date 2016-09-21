@@ -1,6 +1,6 @@
 package build.unstable.tylog
 
-import org.slf4j.LoggerFactory
+import org.slf4j.event.Level
 
 object Example extends App with TypedLogging {
   type TraceID = String
@@ -11,23 +11,22 @@ object Example extends App with TypedLogging {
 
   case object B extends CallType
 
-  val log = LoggerFactory.getLogger(this.getClass)
+  val traceId = "1"
 
-  //this adds callType/variation/traceID to MDC context
-  trace(log, "1", A, Variation.Attempt, "{}", "we attempted a")
+  // this adds callType/variation/traceID to MDC
+  log.tylog(Level.TRACE, traceId, A, Variation.Attempt, "let's see..")
 
-  trace(log, "1", B, Variation.Success, "{}", "B succeeded")
+  // normal log statements between attempt and resolution will have MDC set
+  log.debug("a message with context")
 
-  //it also checks placeholders/args at compile time
-  //trace(log, "1", B, Variation.Success, "{}")
+  // logging Success/Failure will clear MDC
+  log.tylog(Level.TRACE, traceId, A, Variation.Success, "yay!")
 
-  //this compiles
-  debug(log, "an interesting message: {}", "msg")
+  // placeholders and arguments are checked at compile time
+  log.debug("this compiles normally {}", "msg")
 
-  //this doesn't compile
-  //info(log, "an interesting message: {}")
+  // log.info("this does not compile because there is a missing arg {}")
 
-  //neither does this
-  //warning(log, "an interesting message:", "a")
+  // log.warning("this does not compile because there is a missing placeholder", "a")
 
 }

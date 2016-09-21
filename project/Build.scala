@@ -8,7 +8,7 @@ object Build extends sbt.Build {
 
   val commonSettings = Seq(
     organization := "build.unstable",
-    version := "0.2.4",
+    version := "0.3.0",
     scalaVersion := "2.11.8",
     licenses +=("MIT", url("https://opensource.org/licenses/MIT")),
     scalacOptions := Seq(

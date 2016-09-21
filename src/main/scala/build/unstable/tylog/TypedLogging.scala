@@ -1,6 +1,5 @@
 package build.unstable.tylog
 
-import org.slf4j.Logger
 import org.slf4j.event.Level
 
 import scala.language.experimental.macros
@@ -10,22 +9,40 @@ trait TypedLogging {
   type CallType
   type TraceID
 
-  protected def debug(log: Logger, template: String, arg: Any*): Unit = macro Macros.debug
+  object log {
+    def debug(template: String, arg: Any*): Unit = macro Macros.debug
 
-  protected def info(log: Logger, template: String, arg: Any*): Unit = macro Macros.info
+    def info(template: String, arg: Any*): Unit = macro Macros.info
 
-  protected def error(log: Logger, error: Throwable, template: String, arg: Any*): Unit = macro Macros.error
+    def error(error: Throwable, template: String, arg: Any*): Unit = macro Macros.error
 
-  protected def warning(log: Logger, template: String, arg: Any*): Unit = macro Macros.warning
+    def warning(template: String, arg: Any*): Unit = macro Macros.warning
 
-  protected def trace(log: Logger, template: String, arg: Any*): Unit = macro Macros.trace
+    def trace(template: String, arg: Any*): Unit = macro Macros.trace
 
-  @deprecated(message = "use `tylog` method instead. Placeholders vs arg won't be checked at compile time", since = "0.2.5")
-  protected def trace(log: Logger, traceId: TraceID,
-                      callType: CallType, variation: Variation,
-                      template: String, arg: Any*): Unit = macro Macros._trace[TraceID, CallType]
-
-  protected def tylog(logger: Logger, level: Level, traceId: TraceID,
-                      callType: CallType, variation: Variation,
-                      template: String, arg: Any*): Unit = macro Macros.tylog[TraceID, CallType]
+    /**
+      * Log a measurement with the following diagnostic context (MDC):
+      * {
+      *   "call_type": <callType>,
+      *   "variation": <variation>,
+      *   "trace_id": <traceId>
+      * }
+      *
+      * Calls to MDC.put prior to calling this method will be respected and its values logged accordingly.
+      * After measurement is resolved by logging a Variation.Failure or a Variation.Success,
+      * ALL the context will be cleared.
+      *
+      * Failures will be logged at WARN level for TRACE and DEBUG, or at ERROR level for INFO.
+      *
+      * @param level slf4j log level of this measurement. Only INFO, DEBUG and TRACE are allowed
+      * @param traceId measurements group id
+      * @param callType measurement name
+      * @param variation measurement status
+      * @param template message to be logged
+      * @param arg template arguments if any
+      */
+    def tylog(level: Level, traceId: TraceID,
+              callType: CallType, variation: Variation,
+              template: String, arg: Any*): Unit = macro Macros.tylog[TraceID, CallType]
+  }
 }
