@@ -14,7 +14,7 @@ object Example extends App with TypedLogging {
   val traceId = "1"
 
   // this adds callType/variation/traceID to MDC
-  log.tylog(Level.TRACE, traceId, A, Variation.Attempt, "let's see..")
+  log.tylog(Level.TRACE, traceId, A, Variation.Attempt, "let's see..\n...")
 
   // normal log statements between attempt and resolution will have MDC set
   log.debug("a message with context")
@@ -23,7 +23,7 @@ object Example extends App with TypedLogging {
   // log.tylog(Level.ERROR, traceId, A, Variation.Success, "yay!")
 
   // logging Success/Failure will clear MDC
-  log.tylog(Level.INFO, traceId, A, Variation.Success, "yay!")
+  log.tylog(Level.INFO, traceId, A, Variation.Failure(new Exception("BOOM")), "yay!")
 
   // placeholders and arguments are checked at compile time
   log.debug("this compiles normally {}", "msg")
