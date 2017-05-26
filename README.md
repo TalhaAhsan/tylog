@@ -4,7 +4,7 @@
 Server-side inhomogeneous logging can be frustrating to parse and analyze.
 
 # The solution
-Tylog provides a thin interface that abstracts over SLF4J's facade to provide compile time checks for your debug/info/error/warning messages and a type-safe [measure API](src/main/scala/build/unstable/tylog/TypedLogging.scala#L44).
+Tylog provides a thin interface that abstracts over SLF4J's facade to provide compile time checks for your debug/info/error/warning messages and a typed [measure API](src/main/scala/build/unstable/tylog/TypedLogging.scala#L44).
 
 # Usage
 ```scala
